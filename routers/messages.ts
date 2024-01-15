@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import {promises as fs} from 'fs';
+import path from 'path';
 
 const messagesRouter = Router();
 
@@ -8,10 +9,25 @@ interface Message {
   dateTime: string;
 }
 
-const messages: Message[] = [];
+messagesRouter.get('/', async (req, res) => {
+  const messagesFolder = './messages';
 
-messagesRouter.get('/', (req, res) => {
-  res.send(messages);
+  try {
+    const txtFiles = await fs.readdir(messagesFolder);
+
+    const messagesContent = txtFiles.map(async (file) => {
+      const files = path.join(messagesFolder, file);
+      const content = await fs.readFile(files);
+      return {filename: file, message: content.toString()};
+    });
+
+
+    const promises =  await Promise.all(messagesContent);
+
+    res.send(promises);
+  } catch (err) {
+    console.error('Not found! Error:', err);
+  }
 });
 
 messagesRouter.get('/:id', async (req, res) => {
@@ -33,8 +49,6 @@ messagesRouter.post('/', (req, res) => {
     message: req.body.message,
     dateTime: new Date().toISOString(),
   };
-
-  messages.push(message);
 
   res.send('создать сообщение');
 
