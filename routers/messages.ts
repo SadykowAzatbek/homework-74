@@ -1,4 +1,6 @@
 import {Router} from 'express';
+import {promises as fs} from 'fs';
+
 const messagesRouter = Router();
 
 interface Message {
@@ -12,8 +14,16 @@ messagesRouter.get('/', (req, res) => {
   res.send(messages);
 });
 
-messagesRouter.get('/:id', (req, res) => {
-  res.send('здесь должно быть 1 сообщение');
+messagesRouter.get('/:id', async (req, res) => {
+  const id = req.params.id;
+  const path = `./messages/${id}.txt`;
+
+  try {
+    const content = await fs.readFile(path);
+    res.send(content.toString());
+  } catch (error) {
+    console.error('Error reading file:', error);
+  }
 });
 
 messagesRouter.post('/', (req, res) => {
@@ -21,12 +31,24 @@ messagesRouter.post('/', (req, res) => {
 
   const message: Message = {
     message: req.body.message,
-    dateTime: Date(),
+    dateTime: new Date().toISOString(),
   };
 
   messages.push(message);
 
   res.send('создать сообщение');
-});
 
+  const path = './messages/' + message.dateTime + '.txt';
+
+  const run = async () => {
+    try {
+      await fs.writeFile(path, message.message);
+    } catch (err) {
+      console.log('Not found! Error: ' + err);
+    }
+  };
+
+  void run();
+
+});
 export default messagesRouter;
